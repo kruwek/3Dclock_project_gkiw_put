@@ -38,9 +38,6 @@
     <ClInclude Include="constants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="myCube.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="objtovector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
