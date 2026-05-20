@@ -30,7 +30,6 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "constants.h"
 #include "lodepng.h"
 #include "shaderprogram.h"
-#include "myCube.h"
 #include "objtovector.h"
 
 float speed_x = 0;

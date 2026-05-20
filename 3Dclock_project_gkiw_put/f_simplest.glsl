@@ -11,6 +11,10 @@ uniform sampler2D textureMap0;
 
 out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej ostateczny (prawie) kolor piksela
 
+float toonise(float x, int levels){
+	return floor(x*levels)/levels;
+}
+
 void main(void) {
 	
 	vec4 ml = normalize(l);
@@ -30,13 +34,13 @@ void main(void) {
 	float nls = nl+nl2;
 	float rvs = rv+rv2;
 
-	float nlq = max(0.2,floor((nls)*4)/4);
-	float rvq = step(0.4,rvs);
+	float nl_toon = max(0.2,toonise(nls,4));
+	float rv_toon = step(0.9,rvs);
 
 	vec4 texColor=texture(textureMap0,iTexCoord0);
 
 	vec4 g = vec4(0,0,0,0);
 	if (iglow==1) {pixelColor = texColor+vec4(0.2,0.2,0.2,0);}
-	else {pixelColor=texColor*nlq+rvq+g;}
+	else {pixelColor=texColor*nl_toon+rv_toon+g;}
 	
 }
