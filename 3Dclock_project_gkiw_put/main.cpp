@@ -40,6 +40,9 @@ float aspectRatio = 1;
 ShaderProgram* sp;
 ShaderProgram* spol;
 
+GLuint tex0;
+GLuint tex1;
+
 //ładowanie .obj do wektora
 std::vector<MeshObject> myObjects = loadSeparateObjects("zegar.obj");
 
@@ -70,6 +73,25 @@ void windowResizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
+GLuint readTexture(const char* filename) {
+	GLuint tex;
+	glActiveTexture(GL_TEXTURE0);
+	//Wczytanie do pamięci komputera
+	std::vector<unsigned char> image; //Alokuj wektor do wczytania obrazka
+	unsigned width, height; //Zmienne do których wczytamy wymiary obrazka
+	//Wczytaj obrazek
+	unsigned error = lodepng::decode(image, width, height, filename);
+	//Import do pamięci karty graficznej
+	glGenTextures(1, &tex); //Zainicjuj jeden uchwyt
+	glBindTexture(GL_TEXTURE_2D, tex); //Uaktywnij uchwyt
+	//Wczytaj obrazek do pamięci KG skojarzonej z uchwytem
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)image.data());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	return tex;
+}
+
 //Procedura inicjująca
 void initOpenGLProgram(GLFWwindow* window) {
 	//************Tutaj umieszczaj kod, który należy wykonać raz, na początku programu************
@@ -77,6 +99,9 @@ void initOpenGLProgram(GLFWwindow* window) {
 	glEnable(GL_DEPTH_TEST);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
 	glfwSetKeyCallback(window, keyCallback);
+
+	tex0 = readTexture("wood.png");
+	tex1 = readTexture("moon.png");
 
 	sp = new ShaderProgram("v_simplest.glsl", NULL, "f_simplest.glsl");
 	spol = new ShaderProgram("v_outline.glsl", NULL, "f_outline.glsl");
@@ -92,15 +117,22 @@ void freeOpenGLProgram(GLFWwindow* window) {
 }
 
 
-void drawClockPart(int partnumber, glm::vec4 color) {
+void drawClockPart(int partnumber, glm::vec4 color, GLuint* tex) {
 	glUniform4fv(sp->u("col"), 1, glm::value_ptr(color));
+	glUniform1i(sp->u("textureMap0"), 1);
 	glEnableVertexAttribArray(sp->a("vertex")); 
 	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, myObjects[partnumber].vertices.data()); 
 	glEnableVertexAttribArray(sp->a("normal"));
 	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, myObjects[partnumber].normals.data());
+	glEnableVertexAttribArray(sp->a("texCoord0"));
+	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, myObjects[partnumber].texcoords.data());
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, *tex);
 
 	glDrawArrays(GL_TRIANGLES, 0, myObjects[partnumber].vertexCount);
 
+	glDisableVertexAttribArray(sp->a("texCoord0"));
 	glDisableVertexAttribArray(sp->a("normal"));
 	glDisableVertexAttribArray(sp->a("vertex"));  
 }
@@ -156,13 +188,13 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
 	glUniform4fv(sp->u("lp"), 1, glm::value_ptr(lightposition));
 	glUniform1i(sp->u("glow"), 0);
-	drawClockPart(0, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
-	drawClockPart(1, glm::vec4(0.0f, 0.8f, 0.8f, 1.0f));
+	drawClockPart(0, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f),&tex0);
+	drawClockPart(1, glm::vec4(0.0f, 0.8f, 0.8f, 1.0f), &tex0);
 	glUniform1i(sp->u("glow"), 1);
-	drawClockPart(2, glm::vec4(0.8f, 0.1f, 0.1f, 1.0f));
+	drawClockPart(2, glm::vec4(0.8f, 0.1f, 0.1f, 1.0f), &tex1);
 	glUniform1i(sp->u("glow"), 0);
-	drawClockPart(3, glm::vec4(0.85f, 0.6f, 0.0f, 1.0f));
-	drawClockPart(4, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	drawClockPart(3, glm::vec4(0.85f, 0.6f, 0.0f, 1.0f), &tex0);
+	drawClockPart(4, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), &tex0);
 
 	glfwSwapBuffers(window); //Przerzuć tylny bufor na przedni
 }

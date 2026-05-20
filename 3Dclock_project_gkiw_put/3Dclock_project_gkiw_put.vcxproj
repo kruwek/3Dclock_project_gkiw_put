@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="loadpng.cpp" />
     <ClCompile Include="lodepng.h" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="objtovector.cpp" />
@@ -154,6 +155,10 @@
     <CopyFileToFolders Include="zegar.obj">
       <FileType>Document</FileType>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="moon.png" />
+    <Image Include="wood.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

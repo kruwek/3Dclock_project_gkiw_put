@@ -8,10 +8,10 @@ uniform vec4 col;
 uniform vec4 lp;
 uniform int glow;
 
-
 //Atrybuty
 in vec4 vertex; //wspolrzedne wierzcholka w przestrzeni modelu
 in vec4 normal;
+in vec2 texCoord0;
 
 out vec4 ic;
 out vec4 l;
@@ -19,6 +19,7 @@ out vec4 l2;
 out vec4 n;
 out vec4 v;
 flat out int iglow;
+out vec2 iTexCoord0;
 
 void main(void) {
     //light inside moon
@@ -32,4 +33,5 @@ void main(void) {
     gl_Position=P*V*M*vertex;
     ic = col;
     iglow = glow;
+    iTexCoord0=texCoord0;
 }

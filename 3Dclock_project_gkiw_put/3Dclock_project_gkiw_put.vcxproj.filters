@@ -30,6 +30,9 @@
     <ClCompile Include="objtovector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="loadpng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="constants.h">
@@ -60,5 +63,13 @@
     <CopyFileToFolders Include="zegar.obj">
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="wood.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="moon.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
