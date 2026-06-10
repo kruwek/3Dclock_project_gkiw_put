@@ -39,7 +39,7 @@ void main(void) {
 	vec4 texColor=texture(textureMap0,iTexCoord0);
 
 	vec4 normalColor = texColor * nl_toon + rv_toon;
-	vec4 glowColor = texColor + vec4(0.15, 0.15, 0.22, 0.0);
+	vec4 glowColor = texColor + vec4(0.2, 0.2, 0.2, 0.0);
 
 	pixelColor = mix(normalColor, glowColor, float(iglow));
 	
