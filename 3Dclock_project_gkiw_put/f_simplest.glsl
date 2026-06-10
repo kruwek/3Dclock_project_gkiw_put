@@ -1,6 +1,5 @@
 #version 330
 
-in vec4 ic;
 in vec4 l;
 in vec4 l2;
 in vec4 n;
@@ -34,13 +33,14 @@ void main(void) {
 	float nls = nl+nl2;
 	float rvs = rv+rv2;
 
-	float nl_toon = max(0.2,toonise(nls,4));
-	float rv_toon = step(0.9,rvs);
+	float nl_toon = max(0.2,toonise(nls,5));
+	float rv_toon = step(0.9,rvs)*0.24;
 
 	vec4 texColor=texture(textureMap0,iTexCoord0);
 
-	vec4 g = vec4(0,0,0,0);
-	if (iglow==1) {pixelColor = texColor+vec4(0.2,0.2,0.2,0);}
-	else {pixelColor=texColor*nl_toon+rv_toon+g;}
+	vec4 normalColor = texColor * nl_toon + rv_toon;
+	vec4 glowColor = texColor + vec4(0.15, 0.15, 0.22, 0.0);
+
+	pixelColor = mix(normalColor, glowColor, float(iglow));
 	
 }

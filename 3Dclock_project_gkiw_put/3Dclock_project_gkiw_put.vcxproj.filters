@@ -60,12 +60,21 @@
     <CopyFileToFolders Include="zegar.obj">
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="zegar2.obj">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <Image Include="wood.png">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="moon.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="metal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="face.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

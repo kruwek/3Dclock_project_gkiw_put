@@ -4,7 +4,6 @@
 uniform mat4 P;
 uniform mat4 V;
 uniform mat4 M;
-uniform vec4 col;
 uniform vec4 lp;
 uniform int glow;
 
@@ -31,7 +30,6 @@ void main(void) {
     v = normalize(vec4(0,0,0,1) - V*M*vertex); //oka
 
     gl_Position=P*V*M*vertex;
-    ic = col;
     iglow = glow;
     iTexCoord0=texCoord0;
 }

@@ -26,6 +26,7 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
+#include <time.h>
 #include <iostream>
 #include "constants.h"
 #include "lodepng.h"
@@ -41,9 +42,12 @@ ShaderProgram* spol;
 
 GLuint tex0;
 GLuint tex1;
+GLuint tex2;
+GLuint tex3;
 
 //ładowanie .obj do wektora
 std::vector<MeshObject> myObjects = loadSeparateObjects("zegar.obj");
+std::vector<MeshObject> myObjects2 = loadSeparateObjects("zegar2.obj");
 
 //Procedura obsługi błędów
 void error_callback(int error, const char* description) {
@@ -88,6 +92,7 @@ GLuint readTexture(const char* filename) {
 		GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)image.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY, 16.0f);
 	return tex;
 }
 
@@ -99,8 +104,12 @@ void initOpenGLProgram(GLFWwindow* window) {
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
 	glfwSetKeyCallback(window, keyCallback);
 
+
+
 	tex0 = readTexture("wood.png");
 	tex1 = readTexture("moon.png");
+	tex2 = readTexture("face.png");
+	tex3 = readTexture("metal.png");
 
 	sp = new ShaderProgram("v_simplest.glsl", NULL, "f_simplest.glsl");
 	spol = new ShaderProgram("v_outline.glsl", NULL, "f_outline.glsl");
@@ -115,28 +124,9 @@ void freeOpenGLProgram(GLFWwindow* window) {
 	delete spol;
 }
 
-
-void drawClockPart(int partnumber, glm::vec4 color, GLuint* tex) {
-	glUniform4fv(sp->u("col"), 1, glm::value_ptr(color));
-	glUniform1i(sp->u("textureMap0"), 1);
-	glEnableVertexAttribArray(sp->a("vertex")); 
-	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, myObjects[partnumber].vertices.data()); 
-	glEnableVertexAttribArray(sp->a("normal"));
-	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, myObjects[partnumber].normals.data());
-	glEnableVertexAttribArray(sp->a("texCoord0"));
-	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, myObjects[partnumber].texcoords.data());
-
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, *tex);
-
-	glDrawArrays(GL_TRIANGLES, 0, myObjects[partnumber].vertexCount);
-
-	glDisableVertexAttribArray(sp->a("texCoord0"));
-	glDisableVertexAttribArray(sp->a("normal"));
-	glDisableVertexAttribArray(sp->a("vertex"));  
-}
-
-void drawClockOutline(int partnumber) {
+void drawClockOutline(int partnumber, glm::mat4 M) {
+	glCullFace(GL_FRONT);
+	glUniformMatrix4fv(spol->u("M"), 1, false, glm::value_ptr(M));
 	glEnableVertexAttribArray(spol->a("vertex"));
 	glVertexAttribPointer(spol->a("vertex"), 4, GL_FLOAT, false, 0, myObjects[partnumber].vertices.data());
 	glEnableVertexAttribArray(spol->a("normal"));
@@ -146,10 +136,36 @@ void drawClockOutline(int partnumber) {
 
 	glDisableVertexAttribArray(spol->a("normal"));
 	glDisableVertexAttribArray(spol->a("vertex"));
+	glCullFace(GL_BACK);
 }
 
+
+void drawClockPart(int partnumber, GLuint* tex, glm::mat4 M) {
+	spol->use();
+	drawClockOutline(partnumber, M);
+	sp->use();
+	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
+	glUniform1i(sp->u("textureMap0"), 1);
+	glEnableVertexAttribArray(sp->a("vertex")); 
+	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, myObjects2[partnumber].vertices.data());
+	glEnableVertexAttribArray(sp->a("normal"));
+	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, myObjects2[partnumber].normals.data());
+	glEnableVertexAttribArray(sp->a("texCoord0"));
+	glVertexAttribPointer(sp->a("texCoord0"), 2, GL_FLOAT, false, 0, myObjects2[partnumber].texcoords.data());
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, *tex);
+
+	glDrawArrays(GL_TRIANGLES, 0, myObjects2[partnumber].vertexCount);
+
+	glDisableVertexAttribArray(sp->a("texCoord0"));
+	glDisableVertexAttribArray(sp->a("normal"));
+	glDisableVertexAttribArray(sp->a("vertex"));  
+}
+
+
 //Procedura rysująca zawartość sceny
-void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
+void drawScene(GLFWwindow* window, float angle_x, float angle_y, float gearrotate, float sec, float min, float hour, float pendulum) {
 	//************Tutaj umieszczaj kod rysujący obraz******************l
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -167,33 +183,59 @@ void drawScene(GLFWwindow* window, float angle_x, float angle_y) {
 	glm::vec4 lightposition = glm::vec4(5.0f, -7.0f, 13.0f, 1.0f);
 
 	glEnable(GL_CULL_FACE); // Ensure culling is on
-	glCullFace(GL_FRONT);
+
 	spol->use();//Aktywacja programu cieniującego
 	//Przeslij parametry programu cieniującego do karty graficznej
 	glUniformMatrix4fv(spol->u("P"), 1, false, glm::value_ptr(P));
 	glUniformMatrix4fv(spol->u("V"), 1, false, glm::value_ptr(V));
-	glUniformMatrix4fv(spol->u("M"), 1, false, glm::value_ptr(M));
 
-	// 0- face, 1 - cover, 2 -moon, 3 - pendulum, 4 - arrow
-	for (float i = 0.0f;i < 5.0f;i++) {
-		drawClockOutline(i);
-	}
 
-	glCullFace(GL_BACK);
+	// 0-gear, 1-gear_small, 2- face, 3 - cover, 4 -moon, 5 - pendulum, 6 - arrow
+	
+
 	sp->use();//Aktywacja programu cieniującego
 	//Przeslij parametry programu cieniującego do karty graficznej
+	
 	glUniformMatrix4fv(sp->u("P"), 1, false, glm::value_ptr(P));
 	glUniformMatrix4fv(sp->u("V"), 1, false, glm::value_ptr(V));
-	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M));
+
 	glUniform4fv(sp->u("lp"), 1, glm::value_ptr(lightposition));
 	glUniform1i(sp->u("glow"), 0);
-	drawClockPart(0, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f),&tex0);
-	drawClockPart(1, glm::vec4(0.0f, 0.8f, 0.8f, 1.0f), &tex0);
+	glm::mat4 M0 = glm::translate(M, glm::vec3(-0.3f,-1.5f,1.0f));
+	glm::mat4 M1 = glm::translate(M, glm::vec3(0.0f, 0.0f, 1.0f));
+	M1 = glm::rotate(M1, 0.33f, glm::vec3(0.0f, 0.0f, 1.0f));
+	M1 = glm::scale(M1, glm::vec3(0.8f, 0.8f, 0.8f));
+
+	M0 = glm::rotate(M0, -gearrotate, glm::vec3(0.0f, 0.0f, 1.0f));
+	M1 = glm::rotate(M1, 2.0f * gearrotate, glm::vec3(0.0f, 0.0f, 1.0f));
+
+	drawClockPart(0, &tex3, M0);
+	drawClockPart(1, &tex3, M1);
+	drawClockPart(2,&tex2, M);
+	drawClockPart(3, &tex0, M);
+
 	glUniform1i(sp->u("glow"), 1);
-	drawClockPart(2, glm::vec4(0.8f, 0.1f, 0.1f, 1.0f), &tex1);
+	drawClockPart(4, &tex1, M);
 	glUniform1i(sp->u("glow"), 0);
-	drawClockPart(3, glm::vec4(0.85f, 0.6f, 0.0f, 1.0f), &tex0);
-	drawClockPart(4, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), &tex0);
+
+
+	glm::mat4 M5 = glm::rotate(M, pendulum, glm::vec3(0.0f, 0.0f, 1.0f));
+	drawClockPart(5, &tex0, M5);
+
+	//sekundy
+	glm::mat4 M60 = glm::rotate(M, sec, glm::vec3(0.0f, 0.0f, 1.0f));
+	M60 = glm::scale(M60, glm::vec3(0.5f, 1.0f, 1.0f));
+	drawClockPart(6, &tex0, M60);
+	//minuty
+	glm::mat4 M61 = glm::rotate(M, min, glm::vec3(0.0f, 0.0f, 1.0f));
+	M61 = glm::scale(M61, glm::vec3(0.75f, 0.9f, 1.0f));
+	drawClockPart(6, &tex0, M61);
+	//godziny
+	glm::mat4 M62 = glm::rotate(M, hour, glm::vec3(0.0f, 0.0f, 1.0f));
+	M62 = glm::scale(M62, glm::vec3(1.5f, 0.5f, 1.0f));
+	drawClockPart(6, &tex0, M62);
+
+
 
 	glfwSwapBuffers(window); //Przerzuć tylny bufor na przedni
 }
@@ -229,16 +271,36 @@ int main(void)
 
 	initOpenGLProgram(window); //Operacje inicjujące
 
+	long rawTime = (long)time(NULL);
+	int iSeconds = rawTime % 60;
+	int iMinutes = (rawTime / 60) % 60;
+	int iHours = 1+(rawTime / 3600) % 24;
+
 	//Główna pętla
 	float angle_x = 0; //Aktualny kąt obrotu obiektu
 	float angle_y = 0; //Aktualny kąt obrotu obiektu
+	float gearrotate = 0;
+	float pendulumhelper = 0;
+	float pendulumrotate = 0;
+
+	float secAngle = PI+(float)iSeconds / 60.0f * 2.0f * PI;
+	float minAngle = PI+(float)iMinutes / 60.0f * 2.0f * PI;
+	float hourAngle = PI+(float)iHours / 12.0f * 2.0f * PI + minAngle / 12.0f;
+
 	glfwSetTime(0); //Zeruj timer
 	while (!glfwWindowShouldClose(window)) //Tak długo jak okno nie powinno zostać zamknięte
 	{
 		angle_x += speed_x * glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
 		angle_y += speed_y * glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
+		gearrotate += 0.5f * glfwGetTime();
+		secAngle += 2.0f * PI / 60.0f * glfwGetTime();
+		minAngle += 2.0f * PI / 3600.0f * glfwGetTime();
+		hourAngle += 2.0f * PI / 43200.0f * glfwGetTime();
+		pendulumhelper += PI*glfwGetTime();
+		pendulumrotate = sin(pendulumhelper)/4.5f;
+
 		glfwSetTime(0); //Zeruj timer
-		drawScene(window, angle_x, angle_y); //Wykonaj procedurę rysującą
+		drawScene(window, angle_x, angle_y, gearrotate, secAngle, minAngle, hourAngle, pendulumrotate); //Wykonaj procedurę rysującą
 		glfwPollEvents(); //Wykonaj procedury callback w zalezności od zdarzeń jakie zaszły.
 	}
 
